@@ -67,27 +67,88 @@
 /* 0 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const cp = __webpack_require__(1);
-const cs = __webpack_require__(2);
-const {el, mount, on, getel} = __webpack_require__(3);
+//const cp = require("./color-parser");
+const PT = __webpack_require__(1);
+const {el, text, mount, on, getel} = __webpack_require__(2);
 
 on(window, "load", () => {
 
     console.log("page loaded!");
 
+
+    let backColor = {
+        r: 255,
+        g: 255,
+        b: 255
+    };
+    let surfColor = {
+        r: 0,
+        g: 0,
+        b: 0
+    };
     const canvas = el("canvas#canvas", {width: 400, height: 400});
-    mount(getel("#app"), canvas);
-    const coSt = new cs(canvas);
-    let c = cp.hsvToRgb({h: 128, s: 255, v: 255});
-    console.log(c);
-    for(let i = 0; i < 100; i++) {
-        for(let j = 0; j < 100; j++) {
-            coSt.setColor({
-                x: i + 100, y: j + 100, r: c.r, g: c.g, b: c.b, a: 255
-            });
+    const ctx = canvas.getContext("2d");
+    let img = el("img", {on: {
+        load: e => {
+            console.log(img.width, img.height);
+            canvas.width = img.width;
+            canvas.height = img.height;
+            drawDuoTone();
         }
+    }});
+    const input = el("input", {type: "file", on: {
+        change: e => {
+            let fr = new FileReader();
+            on(fr, "load", e => {
+                img.src = fr.result;
+            });
+            fr.readAsDataURL(e.target.files[0]);
+        }
+    }});
+    const backColorEl = el("input", {type: "color", on: {
+        input: e => {
+            let c = e.target.value.slice(-6);
+            backColor.r = parseInt(c.substr(0, 2), 16);
+            backColor.g = parseInt(c.substr(2, 2), 16);
+            backColor.b = parseInt(c.substr(4, 2), 16);
+            drawDuoTone();
+        }
+    }});
+    const surfColorEl = el("input", {type: "color", on: {
+        input: e => {
+            let c = e.target.value.slice(-6);
+            surfColor.r = parseInt(c.substr(0, 2), 16);
+            surfColor.g = parseInt(c.substr(2, 2), 16);
+            surfColor.b = parseInt(c.substr(4, 2), 16);
+            drawDuoTone();
+        }
+    }});
+    mount(getel("#app"), canvas);
+    mount(getel("#app"), input);
+    mount(getel("#app"), el("br"));
+    mount(getel("#app"), text("背景色："));
+    mount(getel("#app"), backColorEl);
+    mount(getel("#app"), text("印刷色："));
+    mount(getel("#app"), surfColorEl);
+    function drawDuoTone() {
+        ctx.drawImage(img, 0, 0);
+        let pt = new PT(canvas), co, cn;
+        for(let y = 0; y < canvas.height; y++) {
+            for(let x = 0; x < canvas.width; x++) {
+                co = pt.getColor({x, y});
+                cn = ((co.r + co.g + co.b) / 3) / 255;
+                pt.setColor({
+                    x, y, 
+                    r: cn * backColor.r + (1 - cn) * surfColor.r,
+                    g: cn * backColor.g + (1 - cn) * surfColor.g,
+                    b: cn * backColor.b + (1 - cn) * surfColor.b,
+                    a: 255
+                });
+            }
+        }
+        console.log(pt);
+        pt.render();
     }
-    coSt.render();
 
 });
 
@@ -95,92 +156,36 @@ on(window, "load", () => {
 /* 1 */
 /***/ (function(module, exports) {
 
-exports.rgbToHsv = function(rgb) {
-  let r = rgb.r;
-  let g = rgb.g;
-  let b = rgb.b;
-  let max = Math.max(r, g, b);
-  let min = Math.min(r, g, b);
-  let h;
-  if(r == g && g == b) h = 0;
-  else if(max == r){
-      h = 60 * ((g - b) / (max - min));
-  }else if(max == g){
-      h = 60 * ((b - r) / (max - min)) + 120;
-  }else{
-      h = 60 * ((r - g) / (max - min)) + 240;
-  }
-  if(h < 0) h += 360;
-  return {
-    h: h / 360 * 255,
-    s: (max - min) / max * 255,
-    v: max
-  }
-};
-exports.hsvToRgb = function(hsv){
-  let h = hsv.h / 255 * 360;
-  let s = hsv.s;
-  let v = hsv.v;
-  let max = v;
-  let min = max - ((s / 255) * max);
-  let r, g, b;
-  if(h <= 60){
-    r = max;
-    g = (h / 60) * (max - min) + min;
-    b = min;
-  }else if(h <= 120){
-    r = ((120 - h) / 60) * (max - min) + min;
-    g = max;
-    b = min;
-  }else if(h <= 180){
-    r = min;
-    g = max;
-    b = ((h - 120) / 60) * (max - min) + min;
-  }else if(h <= 240){
-    r = min;
-    g = ((240 - h) / 60) * (max - min) + min;
-    b = max;
-  }else if(h <= 300){
-    r = ((h - 240) / 60) * (max - min) + min;
-    g = min;
-    b = max;
-  }else{
-    r = max;
-    g = min;
-    b = ((360 - h) / 60) * (max - min) + min;
-  }
-  return {
-    r,
-    g,
-    b
-  };
-};
-
-/***/ }),
-/* 2 */
-/***/ (function(module, exports) {
-
-function colorSetter(canvas) {
+function PixelTouch(canvas) {
     this.ctx = canvas.getContext("2d");
     this.idt = this.ctx.getImageData(0, 0, canvas.width, canvas.height);
     this.data = this.idt.data;
     this.width = this.idt.width;
     this.height = this.idt.height;
 };
-colorSetter.prototype.setColor = function(prop) {
-    let idx = (prop.y * this.height + prop.x) * 4;
+PixelTouch.prototype.getColor = function(prop) {
+    let idx = ((prop.y || 0) * this.width + (prop.x || 0)) * 4;
+    return {
+        r: this.data[idx],
+        g: this.data[idx + 1],
+        b: this.data[idx + 2],
+        a: this.data[idx + 3]
+    };
+}
+PixelTouch.prototype.setColor = function(prop) {
+    let idx = ((prop.y || 0) * this.width + (prop.x || 0)) * 4;
     this.data[idx] = prop.r || 0;
     this.data[idx + 1] = prop.g || 0;
     this.data[idx + 2] = prop.b || 0;
     this.data[idx + 3] = prop.a || 255;
 };
-colorSetter.prototype.render = function() {
+PixelTouch.prototype.render = function() {
     this.ctx.putImageData(this.idt, 0, 0);
 }
-module.exports = colorSetter;
+module.exports = PixelTouch;
 
 /***/ }),
-/* 3 */
+/* 2 */
 /***/ (function(module, exports) {
 
 module.exports = {
