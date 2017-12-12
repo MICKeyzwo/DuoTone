@@ -1,0 +1,27 @@
+{
+  "name": "duo-tone",
+  "version": "1.0.0",
+  "description": "create duo tone image",
+  "main": "index.html",
+  "scripts": {
+    "test": "test",
+    "build": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MICKeyzwo/DuoTone.git"
+  },
+  "keywords": [
+    "html5",
+    "canvas"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MICKeyzwo/DuoTone/issues"
+  },
+  "homepage": "https://github.com/MICKeyzwo/DuoTone#readme",
+  "devDependencies": {
+    "webpack": "^3.10.0"
+  }
+}
