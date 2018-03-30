@@ -130,6 +130,18 @@ on(window, "load", () => {
     mount(getel("#app"), backColorEl);
     mount(getel("#app"), text("印刷色："));
     mount(getel("#app"), surfColorEl);
+    mount(getel("#app"), el("br"));
+    mount(getel("#app"), el("input", {
+        type: "button",
+        value: "背景色と印刷職を反転",
+        on: {
+            click: e => {
+                [backColor, surfColor] = [surfColor, backColor];
+                [backColorEl.value, surfColorEl.value] = [surfColorEl.value, backColorEl.value];
+                drawDuoTone();
+            }
+        }
+    }));
     function drawDuoTone() {
         ctx.drawImage(img, 0, 0);
         let pt = new PT(canvas), co, cn;
